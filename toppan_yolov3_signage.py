@@ -3,9 +3,8 @@
         Face Detection Model: Masked Face from AIZooTech
         Included multithreading reading video method for faster speed
     Author : HungLV
-    Date: 5 June, 2020
+    Date: 9 June, 2020
 """
-
 
 import math
 import time
@@ -16,43 +15,26 @@ from videos.utils import *
 from videos.utils import FPS
 from videos.utils import WebCamVideoStream
 from cutils.logger import Logger
+from utils.utils import read_cfg
 from maskDect.maskDetector import MaskDetector
 
 # HYPER PARAMETERS
 LOG = Logger(name='logger',set_level='DEBUG')
 
-camera_params = {
-    'video_path': '/mnt/49418012-cfa6-4af1-86d8-c0fb55ae6501/Gaze_Estimation/Datasets/AWL_20052020/case24/04_area1_signage1_2020_05_15_10_40_29.mp4',
-    'is_export': True,
-    'output_folder': './',
-    'width': None,
-    'height': None,
-    'camera_name': 'camera',
-    'keep_original_size': False,
-    'fps': 25
-}
-
-face_params = {
-    'weight': '/mnt/49418012-cfa6-4af1-86d8-c0fb55ae6501/Gaze_Estimation/Gitlab_Code/src/graphs/face_mask_detection.params',
-    'det_threshold': 0.5,
-    'area_threshold': 0,
-    'target_size': (260,260),
-    'reverse_order': False,
-    'color': (0,255,0)
-}
+# Load file config
+cfg = read_cfg('config/video.yaml')
 
 # Camera & Video Writer
-capture = WebCamVideoStream(src=camera_params['video_path']).start()
+capture = WebCamVideoStream(src=cfg['input_video']).start()
+
 # open a pointer to the video stream and start the FPS timer
 fps = FPS().start()
 
 frame_cnt = 0 
 
 # Face Detector
-face_detector = MaskDetector(face_params['weight'])
+face_detector = MaskDetector(cfg['face']['weight'])
 
-# while hasFrame:
-# while fps._numFrames < 100:
 while capture.stream.isOpened():
     start_time = time.perf_counter()
     # grab the frame from the stream
@@ -60,7 +42,7 @@ while capture.stream.isOpened():
 
     if img is None: break
 
-    if camera_params['keep_original_size']: 
+    if cfg['camera']['keep_original_size']: 
         img_height, img_width = img.shape[:2]
     else:
         # Resize -> Faster processing
@@ -69,15 +51,15 @@ while capture.stream.isOpened():
 
     if frame_cnt == 0:
         LOG.info(f"Height x Width: {img_height,img_width}")
-        if camera_params['is_export']:
-            writer = prepare_export_video(camera_params['output_folder'], camera_params['camera_name'], camera_params['fps'], (img_width, img_height))
+        if cfg['camera']['is_export']:
+            writer = prepare_export_video(cfg['output_folder'], cfg['camera']['camera_name'], cfg['camera']['fps'], (img_width, img_height))
 
     # Main Process
-    face_boxes, confs, labels = face_detector.detect_face(img,conf_thresh= face_params['det_threshold'],target_shape=face_params['target_size'],
-                                                reverse_order=face_params['reverse_order'],area_thresh=face_params['area_threshold'])
+    face_boxes, confs, labels = face_detector.detect_face(img,conf_thresh= cfg['face']['det_threshold'],target_shape=tuple(cfg['face']['target_size']),
+                                                reverse_order=cfg['face']['reverse_order'],area_thresh=cfg['face']['area_threshold'])
 
     for box in face_boxes:
-        cv2.rectangle(img, (box[0], box[1]), (box[2],box[3]), face_params['color'], 1)
+        cv2.rectangle(img, (box[0], box[1]), (box[2],box[3]), tuple(cfg['face']['color']), 1)
 
     # Show video frames
     cv2.imshow("DEBUG MODE", img)
@@ -87,7 +69,7 @@ while capture.stream.isOpened():
     if key & 0xFF == ord('s'): # stop
         cv2.waitKey(0)
 
-    if camera_params['is_export']:
+    if cfg['camera']['is_export']:
         writer.write(img)
 
     # update the fps counter
@@ -108,5 +90,5 @@ print ("[INFO] elapsed time : {:.2f}".format(fps.elapsed()))
 print ("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
 
 # Export result videos
-if camera_params['is_export']:
+if cfg['camera']['is_export']:
     writer.release()
