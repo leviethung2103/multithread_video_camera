@@ -22,13 +22,13 @@ from maskDect.maskDetector import MaskDetector
 LOG = Logger(name='logger',set_level='DEBUG')
 
 camera_params = {
-    'camera_id': 0,
+    'video_path': '/mnt/49418012-cfa6-4af1-86d8-c0fb55ae6501/Gaze_Estimation/Datasets/AWL_20052020/case24/04_area1_signage1_2020_05_15_10_40_29.mp4',
     'is_export': True,
     'output_folder': './',
     'width': None,
     'height': None,
     'camera_name': 'camera',
-    'keep_original_size': True,
+    'keep_original_size': False,
     'fps': 25
 }
 
@@ -42,7 +42,7 @@ face_params = {
 }
 
 # Camera & Video Writer
-capture = WebCamVideoStream(src=camera_params['camera_id']).start()
+capture = WebCamVideoStream(src=camera_params['video_path']).start()
 # open a pointer to the video stream and start the FPS timer
 fps = FPS().start()
 
@@ -52,11 +52,12 @@ frame_cnt = 0
 face_detector = MaskDetector(face_params['weight'])
 
 # while hasFrame:
-while fps._numFrames < 100:
+# while fps._numFrames < 100:
+while capture.stream.isOpened():
     start_time = time.perf_counter()
     # grab the frame from the stream
     img = capture.read()
-    
+
     if img is None: break
 
     if camera_params['keep_original_size']: 
@@ -92,7 +93,6 @@ while fps._numFrames < 100:
     # update the fps counter
     fps.update()
 
-    # img = capture.read()
     frame_cnt +=1
 
     end_time = time.perf_counter()
@@ -101,6 +101,7 @@ while fps._numFrames < 100:
 # stop the timer and display the information
 fps.stop()
 capture.stop()
+# capture.release()
 cv2.destroyAllWindows()
 
 print ("[INFO] elapsed time : {:.2f}".format(fps.elapsed()))
